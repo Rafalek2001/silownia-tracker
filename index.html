@@ -465,6 +465,14 @@ function saveW(t){
   h.unshift({tab:t,date:dateStr,iso:dv||new Date().toISOString().slice(0,10),
     exs:exs.map(e=>({name:e.name,sets:e.sets,note:e.note}))});
   setH(h.slice(0,120));
+  // wyczyść formularz
+  S[t]=[];
+  saveS();
+  render();
+  // reset daty na dziś
+  document.getElementById('dt-'+t).value=new Date().toISOString().slice(0,10);
+  // przejdź do historii
+  switchSub(t,'h');
   toast('Trening '+t+' zapisany ✓');
 }
 
