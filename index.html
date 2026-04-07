@@ -15,7 +15,7 @@
   --acc:#c87c45; --asoft:#1f1710;
   --text:#ede6da; --sub:#8a7d6e; --faint:#56493c;
   --red:#c46060; --green:#7aad87; --purple:#a08ec8;
-  --r:13px; --ih:56px;
+  --r:13px; --ih:44px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100dvh;padding-bottom:72px;overscroll-behavior:none;}
@@ -91,63 +91,54 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .stbl th{font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px;font-weight:500;padding-bottom:8px;text-align:center;}
 .stbl th:first-child{text-align:left;width:28px;}
 .stbl th:last-child{width:30px;}
-.stbl td{padding:5px 0;vertical-align:middle;text-align:center;}
+.stbl td{padding:6px 0;vertical-align:middle;text-align:center;}
 .stbl td:first-child{text-align:left;}
 .snum{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--faint);}
 
-/* ══ iOS-STYLE DRUM PICKER ══
-   Inspired by UIPickerView: tall items, strong snap, momentum,
-   gradient mask that creates the "infinite scroll" illusion,
-   and a selection band (two hairlines) at dead center.
-*/
+/* ══ iOS ALARM CLOCK DRUM PICKER ══ */
 .drum-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
 .drum{
   position:relative;
   width:100%;
-  height:var(--ih);          /* one visible item = selection zone */
+  height:220px; /* set by JS: IH*5 */
   overflow:hidden;
-  border-radius:10px;
+  border-radius:12px;
   background:var(--s2);
   border:1px solid var(--border);
-  cursor:grab;
-  touch-action:none;         /* we handle all touch ourselves */
+  touch-action:none;
   user-select:none;
   -webkit-user-select:none;
+  cursor:grab;
 }
-/* selection-band hairlines — exactly like iOS Clock */
-.drum::before,.drum::after{
-  content:'';position:absolute;left:8px;right:8px;height:1px;
-  background:var(--border2);z-index:3;pointer-events:none;
-}
-.drum::before{top:calc(50% - 1px);}
-.drum::after{bottom:calc(50% - 1px);}
-/* top+bottom gradient fade */
+/* gradient fade — stronger at edges, transparent in middle 3 slots */
 .drum-fade{
   position:absolute;inset:0;z-index:2;pointer-events:none;
   background:linear-gradient(
     to bottom,
     var(--s2) 0%,
-    transparent 35%,
-    transparent 65%,
+    rgba(37,34,25,0.85) 18%,
+    transparent 36%,
+    transparent 64%,
+    rgba(37,34,25,0.85) 82%,
     var(--s2) 100%
   );
 }
 .drum-list{
   position:absolute;
   left:0;right:0;
-  /* top is set by JS: offset so item 0 sits at center */
   display:flex;flex-direction:column;
   will-change:transform;
 }
 .drum-item{
-  height:var(--ih);
+  height:44px;
   display:flex;align-items:center;justify-content:center;
-  font-size:20px;font-weight:600;
+  font-size:17px;font-weight:500;
   color:var(--faint);
-  transition:color .08s;
   flex-shrink:0;
+  transition:color .1s, font-size .1s, font-weight .1s;
 }
-.drum-item.sel{color:var(--text);font-size:22px;}
+.drum-item.sel{color:var(--text);font-size:22px;font-weight:700;}
+.drum-item.near{color:var(--sub);font-size:18px;font-weight:600;}
 .drum-label{font-size:10px;color:var(--faint);letter-spacing:.4px;text-transform:uppercase;}
 
 .bdel{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;opacity:.35;padding:4px 2px;}
@@ -303,17 +294,15 @@ function saveS(){LSW('gt5',S);}
 function getH(){ let h=LS('gt5h'); if(!h||!h.length){ h=LS('gt4h')||LS('gt3h')||[]; if(h.length)LSW('gt5h',h); } return h||[]; }
 function setH(h){LSW('gt5h',h);}
 
-/* ─── DRUM PICKER (iOS-style) ─── */
-// Options arrays
-const IH = 56; // item height in px — must match --ih CSS var
+/* ─── DRUM PICKER — iOS Alarm Clock style ─── */
+const IH = 44;  // item height px — matches --ih via JS only (CSS uses calc)
+const VISIBLE = 5; // items visible each side of center = 2, total 5
 const REPS_OPTS = ['—',...Array.from({length:50},(_,i)=>i+1)];
-const KG_OPTS   = ['—',...Array.from({length:201},(_,i)=>i)]; // 0–200 kg, step 1
+const KG_OPTS   = ['—',...Array.from({length:201},(_,i)=>i)];
 
 function createDrum(opts, initVal, onChange) {
-  // find initial index
   let initIdx = opts.findIndex(o => String(o) === String(initVal));
   if(initIdx < 0) initIdx = 0;
-
   let currentIdx = initIdx;
 
   const wrap = document.createElement('div');
@@ -321,6 +310,8 @@ function createDrum(opts, initVal, onChange) {
 
   const drum = document.createElement('div');
   drum.className = 'drum';
+  // height = 5 items (2 above + center + 2 below)
+  drum.style.height = (IH * VISIBLE) + 'px';
 
   const fade = document.createElement('div');
   fade.className = 'drum-fade';
@@ -328,105 +319,115 @@ function createDrum(opts, initVal, onChange) {
 
   const list = document.createElement('div');
   list.className = 'drum-list';
-
-  opts.forEach((o, i) => {
+  opts.forEach((o,i) => {
     const item = document.createElement('div');
-    item.className = 'drum-item' + (i === initIdx ? ' sel' : '');
+    item.className = 'drum-item';
+    item.style.height = IH + 'px';
     item.textContent = o === '—' ? '—' : String(o);
     list.appendChild(item);
   });
   drum.appendChild(list);
 
-  // Position so selected item is centred
-  // offset = -(idx * IH) + 0  (items start at top of list)
-  // centre correction: list top = IH/2 - idx*IH  → item centre aligns with drum centre
-  function setPos(idx, animated) {
-    const y = IH/2 - idx * IH - IH/2;
-    // use transform for performance
-    list.style.transition = animated ? 'transform .25s cubic-bezier(.25,.46,.45,.94)' : 'none';
-    list.style.transform = `translateY(${y}px)`;
+  // currentOffset is the raw pixel offset (positive = scrolled down in list)
+  // center of drum = IH*2 (2 items above center slot)
+  // item[i] center = i*IH + IH/2
+  // to center item[i]: offset = i*IH - IH*2
+  let offset = initIdx * IH - IH * 2;
+
+  function applyOffset(off, animated) {
+    list.style.transition = animated ? 'transform .35s cubic-bezier(0.23,1,0.32,1)' : 'none';
+    list.style.transform = 'translateY(' + (-off) + 'px)';
   }
 
-  function highlight(idx) {
-    list.querySelectorAll('.drum-item').forEach((el, i) => {
-      el.classList.toggle('sel', i === idx);
+  function updateHighlight(centeredIdx) {
+    const items = list.querySelectorAll('.drum-item');
+    items.forEach((el, i) => {
+      const dist = Math.abs(i - centeredIdx);
+      el.classList.toggle('sel', dist === 0);
+      el.classList.toggle('near', dist === 1);
     });
   }
 
-  setPos(initIdx, false);
+  function clampOffset(off) {
+    const min = 0 * IH - IH * 2;            // first item centered
+    const max = (opts.length-1) * IH - IH * 2; // last item centered
+    return Math.max(min, Math.min(max, off));
+  }
 
-  // ── Touch handling ──
-  let startY = 0;
-  let startIdx = initIdx;
-  let lastY = 0;
-  let velocity = 0;
-  let lastTime = 0;
-  let rafId = null;
-  let isDragging = false;
+  function nearestIdx(off) {
+    return Math.round((off + IH * 2) / IH);
+  }
 
-  function clamp(i) { return Math.max(0, Math.min(opts.length - 1, i)); }
-
-  function snapTo(idx, animated) {
-    idx = clamp(Math.round(idx));
-    currentIdx = idx;
-    setPos(idx, animated);
-    highlight(idx);
-    const val = opts[idx] === '—' ? '' : String(opts[idx]);
+  function snapToNearest(velocityPx) {
+    // momentum: apply velocity with friction, cap at 8 items max jump
+    const friction = 0.92;
+    let v = velocityPx;
+    let extra = 0;
+    for(let i=0; i<80; i++) { extra += v; v *= friction; if(Math.abs(v) < 0.5) break; }
+    // cap momentum so it doesn't fly past more than 8 items
+    extra = Math.max(-IH*8, Math.min(IH*8, extra));
+    let target = clampOffset(offset + extra);
+    // snap to item grid
+    const idx = Math.round((target + IH*2) / IH);
+    const snappedIdx = Math.max(0, Math.min(opts.length-1, idx));
+    offset = snappedIdx * IH - IH * 2;
+    currentIdx = snappedIdx;
+    applyOffset(offset, true);
+    updateHighlight(snappedIdx);
+    const val = opts[snappedIdx] === '—' ? '' : String(opts[snappedIdx]);
     onChange(val);
   }
 
+  // init position
+  applyOffset(offset, false);
+  updateHighlight(initIdx);
+
+  // ── Touch ──
+  let touchStartY = 0;
+  let touchStartOffset = 0;
+  let lastTouchY = 0;
+  let lastTouchTime = 0;
+  let touchVelocity = 0;  // px/ms
+
   drum.addEventListener('touchstart', e => {
     e.preventDefault();
-    if(rafId) cancelAnimationFrame(rafId);
-    isDragging = true;
-    startY = e.touches[0].clientY;
-    lastY = startY;
-    startIdx = currentIdx;
-    velocity = 0;
-    lastTime = Date.now();
     list.style.transition = 'none';
-  }, {passive: false});
+    touchStartY = e.touches[0].clientY;
+    touchStartOffset = offset;
+    lastTouchY = touchStartY;
+    lastTouchTime = Date.now();
+    touchVelocity = 0;
+  }, {passive:false});
 
   drum.addEventListener('touchmove', e => {
     e.preventDefault();
-    if(!isDragging) return;
     const y = e.touches[0].clientY;
-    const dy = y - lastY;
-    const dt = Date.now() - lastTime;
-    velocity = dt > 0 ? dy / dt : 0;
-    lastY = y;
-    lastTime = Date.now();
+    const now = Date.now();
+    const dt = now - lastTouchTime;
+    const dy = lastTouchY - y; // positive = finger moved up = scroll down in list
+    if(dt > 0) touchVelocity = dy / dt; // px/ms, smoothed
+    lastTouchY = y;
+    lastTouchTime = now;
 
-    const delta = startY - y;
-    const idxDelta = delta / IH;
-    const rawIdx = startIdx + idxDelta;
-    // apply rubber-band at edges
-    const clamped = clamp(rawIdx);
-    const rubber = rawIdx !== clamped ? (rawIdx - clamped) * 0.2 : 0;
-    const finalIdx = clamped + rubber;
-    const translateY = IH/2 - finalIdx * IH - IH/2;
-    list.style.transform = `translateY(${translateY}px)`;
-
-    // live highlight nearest
-    highlight(clamp(Math.round(finalIdx)));
-  }, {passive: false});
+    const moved = touchStartY - y;
+    let raw = touchStartOffset + moved;
+    // rubber-band resistance at edges
+    const min = -IH*2;
+    const max = (opts.length-1)*IH - IH*2;
+    if(raw < min) raw = min + (raw - min) * 0.18;
+    if(raw > max) raw = max + (raw - max) * 0.18;
+    offset = raw;
+    applyOffset(offset, false);
+    updateHighlight(nearestIdx(offset));
+  }, {passive:false});
 
   drum.addEventListener('touchend', e => {
     e.preventDefault();
-    isDragging = false;
+    snapToNearest(touchVelocity * IH * 18); // scale velocity to px
+  }, {passive:false});
 
-    const delta = startY - lastY;
-    const idxDelta = delta / IH;
-    // momentum: velocity in items/ms
-    const momentumItems = -velocity * 120; // tuned for feel
-    let targetIdx = startIdx + idxDelta + momentumItems;
-    snapTo(targetIdx, true);
-  }, {passive: false});
-
-  // Label below
   const lbl = document.createElement('div');
   lbl.className = 'drum-label';
-
   wrap.append(drum, lbl);
   return {el: wrap, setLabel: t => lbl.textContent = t};
 }
