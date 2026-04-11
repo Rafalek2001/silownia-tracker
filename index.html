@@ -15,7 +15,7 @@
   --acc:#c87c45; --asoft:#1f1710;
   --text:#ede6da; --sub:#8a7d6e; --faint:#56493c;
   --red:#c46060; --green:#7aad87; --purple:#a08ec8;
-  --r:13px; --ih:44px;
+  --r:13px; --ih:40px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100dvh;padding-bottom:72px;overscroll-behavior:none;}
@@ -95,31 +95,29 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
 .stbl td:first-child{text-align:left;}
 .snum{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--faint);}
 
-/* ══ iOS ALARM CLOCK DRUM PICKER ══ */
-.drum-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;}
+/* ══ DRUM PICKER ══ */
+.drum-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
 .drum{
   position:relative;
   width:100%;
-  height:220px; /* set by JS: IH*5 */
+  height:140px;
   overflow:hidden;
-  border-radius:12px;
+  border-radius:10px;
   background:var(--s2);
   border:1px solid var(--border);
   touch-action:none;
   user-select:none;
   -webkit-user-select:none;
-  cursor:grab;
 }
-/* gradient fade — stronger at edges, transparent in middle 3 slots */
 .drum-fade{
   position:absolute;inset:0;z-index:2;pointer-events:none;
   background:linear-gradient(
     to bottom,
     var(--s2) 0%,
-    rgba(37,34,25,0.85) 18%,
-    transparent 36%,
-    transparent 64%,
-    rgba(37,34,25,0.85) 82%,
+    rgba(37,34,25,0.8) 20%,
+    transparent 38%,
+    transparent 62%,
+    rgba(37,34,25,0.8) 80%,
     var(--s2) 100%
   );
 }
@@ -130,15 +128,15 @@ body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-
   will-change:transform;
 }
 .drum-item{
-  height:44px;
+  height:28px;
   display:flex;align-items:center;justify-content:center;
-  font-size:17px;font-weight:500;
+  font-size:13px;font-weight:400;
   color:var(--faint);
   flex-shrink:0;
-  transition:color .1s, font-size .1s, font-weight .1s;
 }
-.drum-item.sel{color:var(--text);font-size:22px;font-weight:700;}
-.drum-item.near{color:var(--sub);font-size:18px;font-weight:600;}
+.drum-item.sel{color:var(--text);font-size:16px;font-weight:700;}
+.drum-item.near1{color:var(--sub);font-size:14px;font-weight:500;}
+.drum-item.near2{color:var(--faint);font-size:14px;}
 .drum-label{font-size:10px;color:var(--faint);letter-spacing:.4px;text-transform:uppercase;}
 
 .bdel{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;opacity:.35;padding:4px 2px;}
@@ -294,24 +292,24 @@ function saveS(){LSW('gt5',S);}
 function getH(){ let h=LS('gt5h'); if(!h||!h.length){ h=LS('gt4h')||LS('gt3h')||[]; if(h.length)LSW('gt5h',h); } return h||[]; }
 function setH(h){LSW('gt5h',h);}
 
-/* ─── DRUM PICKER — iOS Alarm Clock style ─── */
-const IH = 44;  // item height px — matches --ih via JS only (CSS uses calc)
-const VISIBLE = 5; // items visible each side of center = 2, total 5
+/* ─── DRUM PICKER ─── */
+// Item height MUST match .drum-item height in CSS (35px)
+// Drum height = IH * 5 = 175px — shows 2 above + center + 2 below
+const IH = 28;
 const REPS_OPTS = ['—',...Array.from({length:50},(_,i)=>i+1)];
 const KG_OPTS   = ['—',...Array.from({length:201},(_,i)=>i)];
 
 function createDrum(opts, initVal, onChange) {
-  let initIdx = opts.findIndex(o => String(o) === String(initVal));
-  if(initIdx < 0) initIdx = 0;
-  let currentIdx = initIdx;
+  // ── find initial index ──
+  let idx = opts.findIndex(o => String(o) === String(initVal));
+  if(idx < 0) idx = 0;
 
+  // ── build DOM ──
   const wrap = document.createElement('div');
   wrap.className = 'drum-wrap';
 
   const drum = document.createElement('div');
   drum.className = 'drum';
-  // height = 5 items (2 above + center + 2 below)
-  drum.style.height = (IH * VISIBLE) + 'px';
 
   const fade = document.createElement('div');
   fade.className = 'drum-fade';
@@ -320,115 +318,138 @@ function createDrum(opts, initVal, onChange) {
   const list = document.createElement('div');
   list.className = 'drum-list';
   opts.forEach((o,i) => {
-    const item = document.createElement('div');
-    item.className = 'drum-item';
-    item.style.height = IH + 'px';
-    item.textContent = o === '—' ? '—' : String(o);
-    list.appendChild(item);
+    const el = document.createElement('div');
+    el.className = 'drum-item';
+    el.style.height = IH + 'px';
+    el.textContent = o === '—' ? '—' : String(o);
+    list.appendChild(el);
   });
   drum.appendChild(list);
 
-  // currentOffset is the raw pixel offset (positive = scrolled down in list)
-  // center of drum = IH*2 (2 items above center slot)
-  // item[i] center = i*IH + IH/2
-  // to center item[i]: offset = i*IH - IH*2
-  let offset = initIdx * IH - IH * 2;
+  const lbl = document.createElement('div');
+  lbl.className = 'drum-label';
+  wrap.append(drum, lbl);
 
-  function applyOffset(off, animated) {
-    list.style.transition = animated ? 'transform .35s cubic-bezier(0.23,1,0.32,1)' : 'none';
-    list.style.transform = 'translateY(' + (-off) + 'px)';
+  // ── state ──
+  // translateY of list so that item[idx] is centred:
+  //   centre of drum = IH*2 (items 0,1 above, item 2 = centre slot)
+  //   list top when item[idx] centred = -(idx*IH - IH*2) = (2-idx)*IH
+  const centreY = () => (2 - idx) * IH;
+
+  function setY(y, anim) {
+    list.style.transition = anim ? 'transform .28s cubic-bezier(0.25,1,0.5,1)' : 'none';
+    list.style.transform = 'translateY(' + y + 'px)';
   }
 
-  function updateHighlight(centeredIdx) {
-    const items = list.querySelectorAll('.drum-item');
-    items.forEach((el, i) => {
-      const dist = Math.abs(i - centeredIdx);
-      el.classList.toggle('sel', dist === 0);
-      el.classList.toggle('near', dist === 1);
+  function hilite() {
+    list.querySelectorAll('.drum-item').forEach((el,i) => {
+      const d = Math.abs(i - idx);
+      el.className = 'drum-item' + (d===0?' sel':d===1?' near1':d===2?' near2':'');
     });
   }
 
-  function clampOffset(off) {
-    const min = 0 * IH - IH * 2;            // first item centered
-    const max = (opts.length-1) * IH - IH * 2; // last item centered
-    return Math.max(min, Math.min(max, off));
+  function commit(newIdx, anim) {
+    idx = Math.max(0, Math.min(opts.length-1, newIdx));
+    setY(centreY(), anim);
+    hilite();
+    onChange(opts[idx] === '—' ? '' : String(opts[idx]));
   }
 
-  function nearestIdx(off) {
-    return Math.round((off + IH * 2) / IH);
-  }
+  // init
+  setY(centreY(), false);
+  hilite();
 
-  function snapToNearest(velocityPx) {
-    // momentum: apply velocity with friction, cap at 8 items max jump
-    const friction = 0.92;
-    let v = velocityPx;
-    let extra = 0;
-    for(let i=0; i<80; i++) { extra += v; v *= friction; if(Math.abs(v) < 0.5) break; }
-    // cap momentum so it doesn't fly past more than 8 items
-    extra = Math.max(-IH*8, Math.min(IH*8, extra));
-    let target = clampOffset(offset + extra);
-    // snap to item grid
-    const idx = Math.round((target + IH*2) / IH);
-    const snappedIdx = Math.max(0, Math.min(opts.length-1, idx));
-    offset = snappedIdx * IH - IH * 2;
-    currentIdx = snappedIdx;
-    applyOffset(offset, true);
-    updateHighlight(snappedIdx);
-    const val = opts[snappedIdx] === '—' ? '' : String(opts[snappedIdx]);
-    onChange(val);
-  }
+  // ── touch ──
+  let t0Y = 0;       // finger Y at touchstart
+  let t0idx = 0;     // idx at touchstart
+  let moved = false; // did finger actually move?
 
-  // init position
-  applyOffset(offset, false);
-  updateHighlight(initIdx);
-
-  // ── Touch ──
-  let touchStartY = 0;
-  let touchStartOffset = 0;
-  let lastTouchY = 0;
-  let lastTouchTime = 0;
-  let touchVelocity = 0;  // px/ms
+  // velocity: track last few points in a short window
+  let pts = [];      // [{t, y}]
 
   drum.addEventListener('touchstart', e => {
     e.preventDefault();
     list.style.transition = 'none';
-    touchStartY = e.touches[0].clientY;
-    touchStartOffset = offset;
-    lastTouchY = touchStartY;
-    lastTouchTime = Date.now();
-    touchVelocity = 0;
+    t0Y = e.touches[0].clientY;
+    t0idx = idx;
+    moved = false;
+    pts = [{t: Date.now(), y: t0Y}];
   }, {passive:false});
 
   drum.addEventListener('touchmove', e => {
     e.preventDefault();
     const y = e.touches[0].clientY;
     const now = Date.now();
-    const dt = now - lastTouchTime;
-    const dy = lastTouchY - y; // positive = finger moved up = scroll down in list
-    if(dt > 0) touchVelocity = dy / dt; // px/ms, smoothed
-    lastTouchY = y;
-    lastTouchTime = now;
 
-    const moved = touchStartY - y;
-    let raw = touchStartOffset + moved;
-    // rubber-band resistance at edges
-    const min = -IH*2;
-    const max = (opts.length-1)*IH - IH*2;
-    if(raw < min) raw = min + (raw - min) * 0.18;
-    if(raw > max) raw = max + (raw - max) * 0.18;
-    offset = raw;
-    applyOffset(offset, false);
-    updateHighlight(nearestIdx(offset));
+    // record for velocity (keep last 60ms only)
+    pts.push({t: now, y});
+    const cutoff = now - 60;
+    while(pts.length > 1 && pts[0].t < cutoff) pts.shift();
+
+    if(Math.abs(y - t0Y) > 2) moved = true;
+
+    // how many items has finger moved?
+    const dragPx = y - t0Y;
+    const dragItems = dragPx / IH;  // positive = finger down = idx decreases
+
+    // raw new idx (float)
+    let rawIdx = t0idx - dragItems;
+
+    // rubber-band at edges
+    const lo = 0, hi = opts.length - 1;
+    if(rawIdx < lo) rawIdx = lo - Math.sqrt(lo - rawIdx) * 0.4;
+    if(rawIdx > hi) rawIdx = hi + Math.sqrt(rawIdx - hi) * 0.4;
+
+    // update list position directly (no snap yet)
+    const floatY = (2 - rawIdx) * IH;
+    list.style.transform = 'translateY(' + floatY + 'px)';
+
+    // live-highlight nearest integer
+    const nearest = Math.max(0, Math.min(hi, Math.round(rawIdx)));
+    if(nearest !== idx) {
+      idx = nearest;
+      hilite();
+      onChange(opts[idx] === '—' ? '' : String(opts[idx]));
+    }
   }, {passive:false});
 
   drum.addEventListener('touchend', e => {
     e.preventDefault();
-    snapToNearest(touchVelocity * IH * 18); // scale velocity to px
+
+    if(!moved) {
+      // pure tap — figure out which row was tapped
+      const tapY = e.changedTouches[0].clientY;
+      const drumRect = drum.getBoundingClientRect();
+      const relY = tapY - drumRect.top;
+      // centre of drum is at IH*2
+      const tapOffset = relY - IH*2;  // px from centre
+      const tapDelta = Math.round(tapOffset / IH);
+      commit(idx + tapDelta, true);
+      return;
+    }
+
+    // compute velocity from rolling window (px/ms)
+    let velPx = 0;
+    if(pts.length >= 2) {
+      const first = pts[0], last = pts[pts.length-1];
+      const dt = last.t - first.t;
+      if(dt > 5) velPx = (last.y - first.y) / dt; // px/ms, + = finger moved down
+    }
+
+    // convert to item momentum
+    // scale: 1 px/ms → N items of coast
+    // reps (short list): low multiplier so it stays slow
+    // kg  (long list):   slightly higher
+    const scale = opts.length > 55 ? 8 : 4;  // items per (px/ms)
+    const momentum = -velPx * scale;           // negative vel = finger up = scroll down = more idx
+
+    // cap: max 6 items for reps, 12 for kg
+    const cap = opts.length > 55 ? 12 : 6;
+    const capped = Math.max(-cap, Math.min(cap, momentum));
+
+    commit(Math.round(idx + capped), true);
   }, {passive:false});
 
-  const lbl = document.createElement('div');
-  lbl.className = 'drum-label';
-  wrap.append(drum, lbl);
   return {el: wrap, setLabel: t => lbl.textContent = t};
 }
 
@@ -501,10 +522,15 @@ function repeatLast(t){
   const last = getH().find(e => e.tab === t);
   if(!last){toast('Brak poprzedniego treningu');return;}
   if(S[t].length > 0 && !confirm('Zastąpić aktualny trening?')) return;
-  // copy only names, fresh empty sets
-  S[t] = last.exs.map(ex => ({name: ex.name, sets:[{reps:'',kg:''}], note:'', open:true}));
+  // copy names + sets so user can edit before saving
+  S[t] = last.exs.map(ex => ({
+    name: ex.name,
+    sets: ex.sets.map(s => ({reps: s.reps, kg: s.kg})),
+    note: ex.note||'',
+    open: true
+  }));
   saveS(); render();
-  toast('Wczytano ćwiczenia z '+last.date);
+  toast('Wczytano trening z '+last.date+' — możesz edytować');
 }
 
 /* ─── RENDER ─── */
