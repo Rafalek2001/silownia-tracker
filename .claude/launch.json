@@ -1,0 +1,31 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gymtracker",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8417",
+        "--bind",
+        "127.0.0.1"
+      ],
+      "port": 8417
+    },
+    {
+      "name": "gymtracker-dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/Users/airnauts/Desktop/silownia-tracker/app/node_modules/vite/bin/vite.js",
+        "/Users/airnauts/Desktop/silownia-tracker/app",
+        "--port",
+        "5417",
+        "--strictPort",
+        "--host",
+        "127.0.0.1"
+      ],
+      "port": 5417
+    }
+  ]
+}
