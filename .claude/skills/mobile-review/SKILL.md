@@ -14,6 +14,8 @@ Review the built `index.html` at phone size and produce a PASS/FAIL report. The 
 - Run `git log --oneline @{u}..HEAD` and `git diff --stat @{u}..HEAD` (fall back to `origin/main..HEAD`). Look harder at what the diff touches, but always run the full smoke flow.
 - **Bundle in sync:** if the diff touches `app/`, run `pnpm release` in `app/` (pnpm may need `corepack pnpm`) and check that `git status --short index.html` is clean. If the rebuilt `index.html` differs from the committed one, the commit ships stale code → FAIL.
 
+- **Technique videos:** if the diff touches `app/src/lib/exercises.ts`, run `python3 app/scripts/check-videos.py`. Any MISSING/BROKEN line → FAIL (every exercise must open a specific video, never a channel or search).
+
 ## 2. Set up
 1. `mcp__Claude_Browser__preview_start` with `name: "gymtracker"` (static server for the built file, http://localhost:8417). For debugging with readable stack traces, `gymtracker-dev` runs Vite on :5417 — but review the built file.
 2. `navigate` to `http://localhost:8417/index.html`, then `resize_window` with `preset: "mobile"` (375×812) and `colorScheme: "dark"`.

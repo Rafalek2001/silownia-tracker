@@ -63,7 +63,7 @@ export function PlanItemDrawer({ store, plan, index, onClose, onSwap }: PlanItem
               {def && (
                 <Button asChild variant="outline" className="h-12 w-full justify-start">
                   <a href={techniqueUrl(def)} target="_blank" rel="noreferrer">
-                    <CircleHelp /> Jak wykonać (Jeff Nippard)
+                    <CircleHelp /> Jak wykonać{def.video ? ` — ${def.video.author}` : ""}
                   </a>
                 </Button>
               )}
