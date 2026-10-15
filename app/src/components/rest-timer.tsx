@@ -8,13 +8,24 @@ import { cn } from "@/lib/utils"
 const PRESETS = [60, 90, 120, 180]
 
 interface TimerApi {
-  start: (seconds: number) => void
+  /** `key` ties the rest to an exercise, so adjustments can be remembered. */
+  start: (seconds: number, key?: string) => void
   stop: () => void
+  /** Adds (or with a negative value removes) time; returns the new planned length. */
+  add: (seconds: number) => { planned: number; key?: string }
   left: number
+  planned: number
   running: boolean
 }
 
-const TimerContext = createContext<TimerApi>({ start: () => {}, stop: () => {}, left: 0, running: false })
+const TimerContext = createContext<TimerApi>({
+  start: () => {},
+  stop: () => {},
+  add: () => ({ planned: 0 }),
+  left: 0,
+  planned: 0,
+  running: false,
+})
 export const useRestTimer = () => useContext(TimerContext)
 export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
 
@@ -22,6 +33,8 @@ export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padSt
 export function TimerProvider({ children }: { children: ReactNode }) {
   const [endAt, setEndAt] = useState<number | null>(null)
   const [now, setNow] = useState(Date.now())
+  const [planned, setPlanned] = useState(0)
+  const meta = useRef<{ key?: string; planned: number }>({ planned: 0 })
   const done = useRef(false)
 
   useEffect(() => {
@@ -41,14 +54,26 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     }
   }, [left, endAt])
 
-  const start = useCallback((s: number) => {
+  const start = useCallback((s: number, key?: string) => {
+    meta.current = { key, planned: s }
+    setPlanned(s)
     setNow(Date.now())
     setEndAt(Date.now() + s * 1000)
   }, [])
   const stop = useCallback(() => setEndAt(null), [])
+  const add = useCallback((s: number) => {
+    const m = meta.current
+    const next = Math.max(15, m.planned + s)
+    const delta = next - m.planned
+    m.planned = next
+    setPlanned(next)
+    setNow(Date.now())
+    setEndAt((e) => (e === null ? e : Math.max(Date.now() + 1000, e + delta * 1000)))
+    return { planned: next, key: m.key }
+  }, [])
 
   return (
-    <TimerContext.Provider value={{ start, stop, left, running: endAt !== null }}>{children}</TimerContext.Provider>
+    <TimerContext.Provider value={{ start, stop, add, left, planned, running: endAt !== null }}>{children}</TimerContext.Provider>
   )
 }
 

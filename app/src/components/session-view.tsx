@@ -7,12 +7,43 @@ import { mmss, useRestTimer } from "@/components/rest-timer"
 import { StretchList } from "@/components/stretch-list"
 import { TechniqueVideo } from "@/components/technique-video"
 import type { GymStore } from "@/hooks/use-gym-store"
-import { getExercise, restSeconds } from "@/lib/exercises"
+import { getExercise } from "@/lib/exercises"
+import { clampRest, restFor, saveRest } from "@/lib/rest"
 import { ExercisePicker } from "@/components/exercise-picker"
 import { partnerIndex } from "@/lib/plan"
 import { lastSession, suggestNext } from "@/lib/stats"
 import { formatSet, type Exercise, type Target } from "@/lib/storage"
 import { cn } from "@/lib/utils"
+
+/** Rest countdown with ±15 s; the adjusted length is remembered for that exercise. */
+function RestBar() {
+  const timer = useRestTimer()
+  const adjust = (d: number) => {
+    const { planned, key } = timer.add(d)
+    if (key) saveRest(key, clampRest(planned))
+  }
+  return (
+    <div className="sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-10 border-b bg-primary/10 px-3 py-2 backdrop-blur-lg">
+      <div className="mx-auto flex max-w-lg items-center gap-2">
+        <Button variant="outline" className="h-11 w-16 bg-background font-mono" onClick={() => adjust(-15)} aria-label="Skróć przerwę o 15 sekund">
+          −15
+        </Button>
+        <div className="flex-1 text-center">
+          <div className={cn("font-mono text-2xl font-semibold tabular leading-none", timer.left <= 10 && "animate-pulse text-primary")}>
+            {mmss(timer.left)}
+          </div>
+          <div className="mt-0.5 text-[11px] text-muted-foreground">przerwa · {mmss(timer.planned)}</div>
+        </div>
+        <Button variant="outline" className="h-11 w-16 bg-background font-mono" onClick={() => adjust(15)} aria-label="Wydłuż przerwę o 15 sekund">
+          +15
+        </Button>
+        <Button variant="ghost" className="h-11 px-3" onClick={timer.stop}>
+          Pomiń
+        </Button>
+      </div>
+    </div>
+  )
+}
 
 // exercises added mid-session from older versions may lack a target
 const targetOf = (e: Exercise): Target => e.target ?? { reps: [8, 12], rir: "1–2" }
@@ -69,16 +100,9 @@ export function SessionView({ store, onExit, onFinished }: SessionViewProps) {
         <Button variant="ghost" size="icon" className="size-11" aria-label="Dodaj ćwiczenie do dzisiejszego treningu" onClick={() => setAdding(true)}>
           <Plus />
         </Button>
-        {timer.running && (
-          <Button
-            onClick={timer.stop}
-            className={cn("h-10 gap-1 rounded-full px-3 font-mono tabular", timer.left <= 10 && "animate-pulse")}
-            aria-label={`Przerwa, zostało ${mmss(timer.left)}. Dotknij, aby zatrzymać`}
-          >
-            {mmss(timer.left)} <X className="opacity-70" />
-          </Button>
-        )}
       </header>
+
+      {timer.running && <RestBar />}
 
       <div className="h-1 bg-muted">
         <div
@@ -153,22 +177,22 @@ function ExerciseStep({ store, index }: { store: GymStore; index: number }) {
     const wasDone = exercises[ex].sets[set]?.done
     store.updateExercise(p, ex, (e) => ({ ...e, sets: e.sets.map((s, j) => (j === set ? { ...s, done: true } : s)) }))
     if (wasDone) return // correcting an earlier set: no rest, stay put
-    const def = getExercise(exercises[ex].exerciseId)
     // after the last set of the step there's nothing to rest for
     const remaining = members.some((ei) => exercises[ei].sets.some((s, j) => !s.done && !(ei === ex && j === set)))
-    if (remaining) timer.start(p === "C" ? 60 : restSeconds(def, members.length > 1))
-    // carry the values over to the next set of this exercise, then alternate within a pair
+    const id = exercises[ex].exerciseId
+    if (remaining) timer.start(restFor(id, p), id)
+    // carry the values over to the next set of this exercise
     const cur = exercises[ex].sets[set]
     store.updateExercise(p, ex, (e) => ({
       ...e,
       sets: e.sets.map((s, j) => (j > set && !s.done ? { ...s, reps: s.reps || cur.reps, kg: cur.kg } : s)),
     }))
+    // stay on this exercise until all its sets are done; only then move to the pair partner
+    const nextOwn = exercises[ex].sets.findIndex((s, j) => j !== set && !s.done)
     const other = members.find((ei) => ei !== ex)
-    const nextOwn = exercises[ex].sets.findIndex((s, j) => j > set && !s.done)
     const otherOpen = other !== undefined ? exercises[other].sets.findIndex((s) => !s.done) : -1
-    if (other !== undefined && otherOpen >= 0 && otherOpen <= set) setActive({ ex: other, set: otherOpen })
-    else if (nextOwn >= 0) setActive({ ex, set: nextOwn })
-    else if (otherOpen >= 0) setActive({ ex: other!, set: otherOpen })
+    if (nextOwn >= 0) setActive({ ex, set: nextOwn })
+    else if (other !== undefined && otherOpen >= 0) setActive({ ex: other, set: otherOpen })
   }
 
   return (
@@ -242,7 +266,7 @@ function ExerciseBlock({
           </div>
           <h2 className="text-xl font-semibold leading-tight tracking-tight">{ex.name}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {ex.sets.length} × {item.reps[0]}–{item.reps[1]} · RIR {item.rir}
+            {ex.sets.length} × {item.reps[0]}–{item.reps[1]} · RIR {item.rir} · przerwa {mmss(restFor(ex.exerciseId, p))}
             {hint && <span className="ml-1.5 rounded bg-muted px-1.5 py-0.5 text-xs text-foreground">{hint}</span>}
           </p>
         </div>

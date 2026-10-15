@@ -18,10 +18,11 @@ Start from clean data in dark mode (see SKILL.md step 2), then load the fixture 
 ## Session
 - [ ] Start: full-screen session, header "Trening X · Ćwiczenie n z m", progress bar, + (add) button.
 - [ ] Drums are pre-set to the suggestion (e.g. squat 6 × 55 with the fixture); hint chip shows the reason; "Ostatnio …" line shows the last sets.
-- [ ] "Seria zrobiona" ticks the active set, starts the rest timer in the header (3:00 compound, 1:30 isolation/pairs, 1:00 plan C) and moves to the next set.
-- [ ] In a pair (⇄) ticks alternate between the two exercises.
+- [ ] "Seria zrobiona" ticks the active set, shows the rest bar under the header (default 3:00 compound, 1:30 isolation, 1:00 plan C) and moves to the NEXT SET OF THE SAME exercise — never jumps to another exercise while this one has open sets.
+- [ ] In a pair (⇄) the partner becomes active only after all sets of the current exercise are done (or when tapped).
+- [ ] Rest bar: −15 / +15 change the countdown and the "przerwa" length; "Pomiń" stops it. The adjusted length is remembered per exercise (`gt5rest`) and shown in the target line ("· przerwa 3:15") next time.
 - [ ] Tapping a done set chip selects it; the button reads "Popraw serię".
-- [ ] "?" opens the technique link in a new tab (verified Jeff Nippard video or channel search).
+- [ ] "?" opens an in-app drawer playing that exercise's technique video (embed), with "Otwórz w YouTube" below; never a channel page.
 - [ ] "+" in the header adds an exercise to today only (inserted after the current step; plan unchanged).
 - [ ] Closing (×) returns to Dziś with "Wróć do treningu"; reloading the app reopens the session.
 - [ ] Last step → Rozciąganie: tap a stretch → countdown fill, rounds x/2; "Zakończ trening" saves only ticked sets, clears the session, shows History.
