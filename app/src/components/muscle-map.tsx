@@ -1,6 +1,4 @@
-import type { ReactNode } from "react"
 import { MUSCLES, type Muscle } from "@/lib/exercises"
-import type { MuscleSets } from "@/lib/stats"
 import { cn } from "@/lib/utils"
 
 // Anatomical line-art figure, front and back, in a 200×430 box centred on x=100.
@@ -70,9 +68,19 @@ const BACK: Region = {
 
 const FILL = ["transparent", "hsl(var(--muscle) / 0.45)", "hsl(var(--muscle) / 0.85)", "hsl(var(--muscle-max))"]
 
-function Figure({ regions, levelOf, label }: { regions: Region; levelOf: (m: Muscle) => number; label: string }) {
+function Figure({
+  regions,
+  levelOf,
+  label,
+  className,
+}: {
+  regions: Region
+  levelOf: (m: Muscle) => number
+  label: string
+  className?: string
+}) {
   return (
-    <figure className="flex flex-1 flex-col items-center gap-1.5">
+    <figure className={cn("flex flex-1 flex-col items-center gap-1.5", className)}>
       <svg viewBox="24 4 152 420" className="h-auto w-full max-w-[9.5rem]" aria-hidden>
         <g fill="none" stroke="hsl(var(--foreground) / 0.55)" strokeWidth="1.3" strokeLinejoin="round">
           <path d={HEAD} />
@@ -88,45 +96,63 @@ function Figure({ regions, levelOf, label }: { regions: Region; levelOf: (m: Mus
           })}
         </g>
       </svg>
-      <figcaption className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</figcaption>
+      {label && <figcaption className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</figcaption>}
     </figure>
   )
 }
 
-interface MuscleMapProps {
-  sets: MuscleSets
-  /** Upper bounds of levels 1 and 2; above the second is level 3 (highlighted). */
-  thresholds: [number, number]
-  legend: [string, string, string]
-  className?: string
-  footer?: ReactNode
-}
+const covers = (regions: Region, ms: Muscle[]) => ms.some((m) => regions[m]?.length)
 
-export function MuscleMap({ sets, thresholds: [a, b], legend, className, footer }: MuscleMapProps) {
-  const levelOf = (m: Muscle) => {
-    const v = sets[m] ?? 0
-    return v <= 0 ? 0 : v < a ? 1 : v < b ? 2 : 3
-  }
-  const worked = (Object.keys(MUSCLES) as Muscle[]).filter((m) => sets[m] > 0)
-  const description = worked.length
-    ? worked.map((m) => `${MUSCLES[m]}: ${Math.round(sets[m] * 10) / 10} serii`).join(", ")
-    : "Brak serii"
+/**
+ * Muscles one exercise works: primary bright, secondary light, with labels.
+ * Only the side(s) of the body that are actually worked are drawn.
+ */
+export function ExerciseMuscles({
+  primary,
+  secondary = [],
+  size = "sm",
+  className,
+}: {
+  primary: Muscle[]
+  secondary?: Muscle[]
+  size?: "sm" | "md"
+  className?: string
+}) {
+  const levelOf = (m: Muscle) => (primary.includes(m) ? 3 : secondary.includes(m) ? 1 : 0)
+  const all = [...primary, ...secondary]
+  const sides = [
+    { regions: FRONT, label: "Przód" },
+    { regions: BACK, label: "Tył" },
+  ].filter((f) => covers(f.regions, all))
+  const width = size === "sm" ? "w-14" : "w-20"
 
   return (
-    <div className={cn("space-y-3", className)} role="img" aria-label={`Mapa mięśni. ${description}`}>
-      <div className="flex justify-center gap-4">
-        <Figure regions={FRONT} levelOf={levelOf} label="Przód" />
-        <Figure regions={BACK} levelOf={levelOf} label="Tył" />
-      </div>
-      <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground">
-        {legend.map((l, i) => (
-          <span key={l} className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm border border-foreground/30" style={{ background: FILL[i + 1] }} />
-            {l}
-          </span>
+    <div
+      className={cn("flex items-center gap-3", className)}
+      role="img"
+      aria-label={`Mięśnie główne: ${primary.map((m) => MUSCLES[m]).join(", ")}${secondary.length ? `. Pomocnicze: ${secondary.map((m) => MUSCLES[m]).join(", ")}` : ""}`}
+    >
+      <div className="flex shrink-0 gap-1">
+        {sides.map((f) => (
+          <Figure key={f.label} regions={f.regions} levelOf={levelOf} label={size === "md" ? f.label : ""} className={cn("flex-none", width)} />
         ))}
       </div>
-      {footer}
+      <dl className="min-w-0 space-y-1.5 text-xs">
+        <div>
+          <dt className="flex items-center gap-1.5 text-muted-foreground">
+            <span className="size-2 rounded-full" style={{ background: FILL[3] }} /> Główne
+          </dt>
+          <dd className="font-medium text-foreground">{primary.map((m) => MUSCLES[m]).join(", ")}</dd>
+        </div>
+        {secondary.length > 0 && (
+          <div>
+            <dt className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="size-2 rounded-full" style={{ background: FILL[1] }} /> Pomocnicze
+            </dt>
+            <dd className="text-foreground/80">{secondary.map((m) => MUSCLES[m]).join(", ")}</dd>
+          </div>
+        )}
+      </dl>
     </div>
   )
 }

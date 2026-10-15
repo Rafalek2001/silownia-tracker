@@ -6,6 +6,7 @@ import { useConfirm } from "@/components/confirm-dialog"
 import { mmss, useRestTimer } from "@/components/rest-timer"
 import { StretchList } from "@/components/stretch-list"
 import { TechniqueVideo } from "@/components/technique-video"
+import { ExerciseMuscles } from "@/components/muscle-map"
 import type { GymStore } from "@/hooks/use-gym-store"
 import { getExercise } from "@/lib/exercises"
 import { clampRest, restFor, saveRest } from "@/lib/rest"
@@ -278,6 +279,8 @@ function ExerciseBlock({
           </TechniqueVideo>
         )}
       </div>
+
+      {def && <ExerciseMuscles primary={def.primary} secondary={def.secondary} className="mt-3" />}
 
       {last && (
         <p className="mt-2 text-xs text-muted-foreground">

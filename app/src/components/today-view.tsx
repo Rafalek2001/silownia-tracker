@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useConfirm } from "@/components/confirm-dialog"
 import { ExercisePicker } from "@/components/exercise-picker"
-import { MuscleMap } from "@/components/muscle-map"
 import { PlanItemDrawer } from "@/components/plan-item-drawer"
 import { ReviewCard } from "@/components/review-card"
 import type { GymStore } from "@/hooks/use-gym-store"
-import { getExercise } from "@/lib/exercises"
-import { isRampUp, nextPlan, plannedSets, rampSets, testSessions, weekSets } from "@/lib/stats"
+import { getExercise, MUSCLES } from "@/lib/exercises"
+import { isRampUp, nextPlan, rampSets, testSessions } from "@/lib/stats"
 import { PLANS, plural, type Plan } from "@/lib/storage"
 import { cn } from "@/lib/utils"
 
@@ -25,7 +24,6 @@ export function TodayView({ store, onOpenSession }: { store: GymStore; onOpenSes
   const suggested = nextPlan(store.history)
   const [picked, setPicked] = useState<Plan | null>(null)
   const p = store.session?.plan ?? picked ?? suggested
-  const [mode, setMode] = useState<"today" | "week">("today")
   const [swap, setSwap] = useState<number | null>(null)
   const [editing, setEditing] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
@@ -101,27 +99,6 @@ export function TodayView({ store, onOpenSession }: { store: GymStore; onOpenSes
         </Card>
       )}
 
-      <Card className="p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-medium">Mięśnie</span>
-          <div className="flex rounded-lg bg-muted p-0.5 text-xs">
-            {(["today", "week"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={cn("h-10 rounded-md px-3", mode === m ? "bg-background font-medium shadow-sm" : "text-muted-foreground")}
-              >
-                {m === "today" ? "Ten trening" : "Ostatnie 7 dni"}
-              </button>
-            ))}
-          </div>
-        </div>
-        {mode === "today" ? (
-          <MuscleMap sets={plannedSets(items)} thresholds={[3, 6]} legend={["1–2 serie", "3–5", "6+"]} />
-        ) : (
-          <MuscleMap sets={weekSets(store.history)} thresholds={[10, 16]} legend={["<10 serii", "10–15", "16+"]} />
-        )}
-      </Card>
 
       <ol className="divide-y rounded-xl border bg-card">
         {items.map((it, i) => {
@@ -143,6 +120,7 @@ export function TodayView({ store, onOpenSession }: { store: GymStore; onOpenSes
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {it.sets} × {it.reps[0]}–{it.reps[1]}
+                    {def && ` · ${def.primary.map((m) => MUSCLES[m]).join(", ")}`}
                     {it.pair && " · na zmianę z następnym"}
                     {it.deload && " · lżej o 10%"}
                   </span>
@@ -164,7 +142,7 @@ export function TodayView({ store, onOpenSession }: { store: GymStore; onOpenSes
         </li>
       </ol>
 
-      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-20 space-y-2">
+      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 -mx-4 space-y-1 bg-gradient-to-t from-background from-70% to-transparent px-4 pb-3 pt-6">
         <Button
           className="h-14 w-full text-lg font-semibold shadow-lg"
           onClick={() => {

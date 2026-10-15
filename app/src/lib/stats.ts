@@ -138,18 +138,6 @@ export function plannedSets(items: { id: string; sets: number }[]) {
   return items.reduce((acc, it) => addSets(acc, getExercise(it.id), it.sets), emptyMuscleSets())
 }
 
-/** Sets actually done in the last 7 days, per muscle. */
-export function weekSets(history: HistoryEntry[], now = new Date()) {
-  const from = now.getTime() - 7 * DAY
-  return history
-    .filter((e) => isoTime(e.iso) > from)
-    .flatMap((e) => e.exs)
-    .reduce(
-      (acc, ex) => addSets(acc, getExercise(resolveExerciseId(ex.name, ex.exerciseId)), workingSets(ex.sets).length),
-      emptyMuscleSets(),
-    )
-}
-
 /** How many sessions the current test exercise has been done since it was put in. */
 export function testSessions(history: HistoryEntry[], id: string, fromIso?: string) {
   return history.filter((e) => (!fromIso || e.iso >= fromIso) && e.exs.some((x) => exerciseKey(x.name, x.exerciseId) === id))

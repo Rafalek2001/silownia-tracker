@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { useConfirm } from "@/components/confirm-dialog"
 import type { GymStore } from "@/hooks/use-gym-store"
-import { getExercise, MUSCLES } from "@/lib/exercises"
+import { getExercise } from "@/lib/exercises"
+import { ExerciseMuscles } from "@/components/muscle-map"
 import { TechniqueVideo } from "@/components/technique-video"
 import type { Plan } from "@/lib/storage"
 
@@ -29,12 +30,11 @@ export function PlanItemDrawer({ store, plan, index, onClose, onSwap }: PlanItem
             <DrawerHeader className="text-left">
               <DrawerTitle>{def?.name ?? item.id}</DrawerTitle>
               <DrawerDescription>
-                {def ? [...def.primary, ...(def.secondary ?? [])].map((m) => MUSCLES[m]).join(", ") : ""}
-                {" · "}
-                {item.reps[0]}–{item.reps[1]} powt. · RIR {item.rir}
+                {item.sets} × {item.reps[0]}–{item.reps[1]} powt. · RIR {item.rir}
               </DrawerDescription>
             </DrawerHeader>
             <div className="space-y-3 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+              {def && <ExerciseMuscles primary={def.primary} secondary={def.secondary} size="md" className="rounded-xl border p-3" />}
               <div className="flex items-center justify-between rounded-xl border p-2 pl-4">
                 <span className="text-sm font-medium">Serie</span>
                 <div className="flex items-center gap-1">
