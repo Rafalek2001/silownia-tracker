@@ -5,8 +5,9 @@ import { DrumPicker, KG_OPTIONS, REPS_OPTIONS } from "@/components/drum-picker"
 import { useConfirm } from "@/components/confirm-dialog"
 import { mmss, useRestTimer } from "@/components/rest-timer"
 import { StretchList } from "@/components/stretch-list"
+import { TechniqueVideo } from "@/components/technique-video"
 import type { GymStore } from "@/hooks/use-gym-store"
-import { getExercise, restSeconds, techniqueUrl } from "@/lib/exercises"
+import { getExercise, restSeconds } from "@/lib/exercises"
 import { ExercisePicker } from "@/components/exercise-picker"
 import { partnerIndex } from "@/lib/plan"
 import { lastSession, suggestNext } from "@/lib/stats"
@@ -246,11 +247,11 @@ function ExerciseBlock({
           </p>
         </div>
         {def && (
-          <Button asChild variant="ghost" size="icon" className="-mr-2 -mt-1 size-11 shrink-0 text-muted-foreground">
-            <a href={techniqueUrl(def)} target="_blank" rel="noreferrer" aria-label={`Technika: ${ex.name}`} onClick={(e) => e.stopPropagation()}>
+          <TechniqueVideo def={def}>
+            <Button variant="ghost" size="icon" className="-mr-2 -mt-1 size-11 shrink-0 text-muted-foreground" aria-label={`Technika: ${ex.name}`}>
               <CircleHelp className="size-5" />
-            </a>
-          </Button>
+            </Button>
+          </TechniqueVideo>
         )}
       </div>
 

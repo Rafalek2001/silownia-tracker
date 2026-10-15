@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { useConfirm } from "@/components/confirm-dialog"
 import type { GymStore } from "@/hooks/use-gym-store"
-import { getExercise, MUSCLES, techniqueUrl } from "@/lib/exercises"
+import { getExercise, MUSCLES } from "@/lib/exercises"
+import { TechniqueVideo } from "@/components/technique-video"
 import type { Plan } from "@/lib/storage"
 
 interface PlanItemDrawerProps {
@@ -61,11 +62,11 @@ export function PlanItemDrawer({ store, plan, index, onClose, onSwap }: PlanItem
                 </div>
               </div>
               {def && (
-                <Button asChild variant="outline" className="h-12 w-full justify-start">
-                  <a href={techniqueUrl(def)} target="_blank" rel="noreferrer">
+                <TechniqueVideo def={def} nested>
+                  <Button variant="outline" className="h-12 w-full justify-start">
                     <CircleHelp /> Jak wykonać{def.video ? ` — ${def.video.author}` : ""}
-                  </a>
-                </Button>
+                  </Button>
+                </TechniqueVideo>
               )}
               <Button variant="outline" className="h-12 w-full justify-start" onClick={() => onSwap(index)}>
                 <Repeat /> Wymień na inne
